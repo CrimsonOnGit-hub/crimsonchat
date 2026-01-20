@@ -1,72 +1,74 @@
-// --- CONFIGURATION ---
-const APP_ID = "512c0979-f7b9-496c-b07b-5d5f753ae9c9";
-const VERSION = "1.0";
-const CHANNEL = "ingame"; // Must match Unity exactly
+// --- SETTINGS ---
+// IMPORTANT: Double check this ID. Is it your CHAT App ID? (Not PUN App ID)
+const APP_ID = "512c0979-f7b9-496c-b07b-5d5f753ae9c9"; 
+const APP_VER = "1.0";
+const CHANNEL = "ingame";
 
-var chatClient;
-const logBox = document.getElementById("chat-log");
-const inputField = document.getElementById("msgInput");
-const sendBtn = document.getElementById("sendBtn");
+var client;
 
-// 1. Initialize Client (1 = Wss Protocol for Secure GitHub Pages)
-chatClient = new Photon.Chat.ChatClient(1, APP_ID, VERSION);
+window.onload = function() {
+    log("Page Loaded. Checking for Photon...", "info");
 
-// 2. Handle Connection State
-chatClient.onStateChange = function(state) {
-    console.log("State Change:", state);
-    if (state === 10) { // 10 = ConnectedToFrontEnd
-        addLog("<span style='color:#4caf50'>[SUCCESS] Connected! Joined '" + CHANNEL + "'</span>");
-        chatClient.subscribe([CHANNEL]);
+    if (typeof Photon === 'undefined') {
+        log("ERROR: Photon Variable is 'undefined'. The SDK script failed to run.", "err");
+        return;
+    }
+
+    log("SDK Found! initializing Client...", "success");
+    
+    // Protocol 1 = WSS (Secure)
+    client = new Photon.Chat.ChatClient(1, APP_ID, APP_VER);
+
+    // STATE HANDLER
+    client.onStateChange = function(state) {
+        var stateText = "Unknown (" + state + ")";
+        // Map common states for readability
+        if(state === 11) stateText = "ConnectedToNameServer";
+        if(state === 13) stateText = "Disconnected";
+        if(state === 10) stateText = "ConnectedToFrontEnd";
         
-        // Enable the UI
-        inputField.disabled = false;
-        sendBtn.disabled = false;
-        inputField.placeholder = "Type a message to VR players...";
-        inputField.focus();
-    } else {
-        document.getElementById("header").innerText = "STATUS: " + state;
-    }
+        log("State Changed: " + stateText, "info");
+        document.getElementById("status").innerText = "Status: " + stateText;
+
+        if (state === 13) {
+            log("DISCONNECTED. Check App ID or Region.", "err");
+        }
+
+        if (state === 10) {
+            log("SUCCESS: Connected to Chat Server!", "success");
+            client.subscribe([CHANNEL]);
+            document.getElementById("msgInput").disabled = false;
+            document.getElementById("sendBtn").disabled = false;
+            document.getElementById("sendBtn").style.background = "#00cc00";
+        }
+    };
+
+    // LOG MESSAGES
+    client.onChatMessages = function(channel, senders, messages) {
+        for (var i = 0; i < messages.length; i++) {
+            log("MSG from " + senders[i] + ": " + messages[i]);
+        }
+    };
+
+    // START CONNECTION
+    log("Connecting to US Region...", "info");
+    // Try generic connect first (safest)
+    client.connectToRegionMaster("US", "WebDebug_" + Math.floor(Math.random()*100));
+
+    // HEARTBEAT LOOP
+    setInterval(function() {
+        if (client) {
+            if (client.Service) client.Service();
+            else if (client.service) client.service();
+        }
+    }, 50);
 };
 
-// 3. Handle Messages from Unity or other Web users
-chatClient.onChatMessages = function(channel, senders, messages) {
-    for (var i = 0; i < messages.length; i++) {
-        addLog("<b>" + senders[i] + ":</b> " + messages[i]);
-    }
-};
-
-// 4. Send Message Function
 window.sendMsg = function() {
-    var text = inputField.value.trim();
-    if (!text) return;
-
-    if (chatClient && chatClient.publishMessage(CHANNEL, text)) {
-        addLog("<span style='color:#aaa'>Me (Web): " + text + "</span>");
-        inputField.value = "";
+    var inp = document.getElementById("msgInput");
+    if(client && inp.value) {
+        client.publishMessage(CHANNEL, inp.value);
+        log("Sent: " + inp.value);
+        inp.value = "";
     }
 };
-
-// 5. THE SERVICE LOOP (Heartbeat) - MANDATORY
-setInterval(function() {
-    if (chatClient) {
-        if (chatClient.Service) chatClient.Service();
-        else if (chatClient.service) chatClient.service();
-    }
-}, 50);
-
-// 6. Connect to Region (Matches Unity default)
-var userId = "WebAdmin_" + Math.floor(Math.random() * 1000);
-console.log("Connecting as:", userId);
-chatClient.connectToRegionMaster("US", userId);
-
-// Enter Key Listener
-inputField.addEventListener("keydown", function(e) {
-    if (e.keyCode === 13) window.sendMsg();
-});
-
-function addLog(html) {
-    const div = document.createElement("div");
-    div.innerHTML = html;
-    logBox.appendChild(div);
-    logBox.scrollTop = logBox.scrollHeight;
-}
