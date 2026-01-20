@@ -16,12 +16,12 @@
     <div id="debug-log">Debug: Waiting for Script...</div>
     <div id="chat-log">System: Initializing...</div>
     <div class="controls">
-        <input type="text" id="msgInput" placeholder="Locked..." disabled>
+        <input type="text" id="msgInput" placeholder="Connecting..." disabled>
         <button id="sendBtn" onclick="sendMsg()" disabled>SEND</button>
     </div>
 
-    <!-- Ensure these are in the same folder on GitHub -->
-    <script src="photon.js"></script>
-    <script src="chat.js"></script>
+    <!-- The defer attribute ensures photon.js loads before chat.js -->
+    <script src="photon.js" defer></script>
+    <script src="chat.js" defer></script>
 </body>
 </html>
