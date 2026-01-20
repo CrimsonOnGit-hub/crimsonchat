@@ -2,41 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Crimson Protocols | Debug Mode</title>
+    <title>Crimson Protocols | Web Bridge</title>
     <style>
-        body { background: #111; color: white; font-family: monospace; padding: 20px; }
-        #status { border: 1px solid #444; padding: 10px; margin-bottom: 10px; }
-        #log { height: 300px; overflow-y: scroll; background: #000; border: 1px solid #333; padding: 10px; }
-        .err { color: #ff4444; font-weight: bold; }
-        .success { color: #4caf50; }
-        .info { color: #88ccff; }
-        button { padding: 15px; width: 100%; background: #cc0000; color: white; border: none; font-weight: bold; cursor: pointer; }
+        body { background: #111; color: white; font-family: sans-serif; display: flex; flex-direction: column; height: 95vh; margin: 0; padding: 15px; }
+        #chat-log { flex: 1; overflow-y: auto; background: #000; border: 1px solid #333; padding: 15px; border-radius: 8px; font-family: monospace; }
+        .controls { display: flex; gap: 10px; margin-top: 10px; }
+        input { flex: 1; padding: 12px; border-radius: 5px; border: 1px solid #444; background: #222; color: white; }
+        button { padding: 10px 20px; background: #ff0000; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:disabled { background: #444; }
     </style>
 </head>
 <body>
 
-    <h2>CONNECTION DEBUGGER</h2>
-    <div id="status">Status: Initializing...</div>
-    <div id="log"></div>
+    <h2 style="color:#ff3333; text-align:center;">CRIMSON PROTOCOLS CHAT</h2>
+    <div id="chat-log">System: Connecting to SDK...</div>
     
-    <input type="text" id="msgInput" placeholder="Waiting for connection..." style="width:100%; padding:10px; margin-bottom:10px;" disabled>
-    <button id="sendBtn" onclick="sendMsg()" disabled>SEND TEST MESSAGE</button>
+    <div class="controls">
+        <input type="text" id="msgInput" placeholder="Waiting for connection..." disabled>
+        <button id="sendBtn" onclick="sendMsg()" disabled>SEND</button>
+    </div>
 
-    <!-- LOAD SDK WITH ERROR CATCHING -->
-    <script>
-        function log(msg, type="") {
-            var d = document.createElement("div");
-            d.innerHTML = msg;
-            if(type) d.className = type;
-            document.getElementById("log").appendChild(d);
-        }
-    </script>
-
-    <!-- TRY LOADING FROM CDNJS (More stable than unpkg) -->
-    <script src="https://cdnjs.cloudflare.com" 
-            onerror="log('CRITICAL ERROR: Could not download Photon SDK. Your network is blocking cdnjs.cloudflare.com', 'err')">
-    </script>
-
+    <!-- THIS IS THE CRITICAL PART: WE ONLY USE YOUR LOCAL FILES -->
+    <script src="photon.js"></script>
     <script src="chat.js"></script>
 
 </body>
