@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Crimson Protocols: Web Bridge</title>
+    <style>
+        body { background: #121212; color: #eee; font-family: sans-serif; display: flex; flex-direction: column; height: 95vh; padding: 10px; margin: 0; }
+        #chat-log { flex: 1; overflow-y: auto; background: #000; border: 1px solid #333; padding: 15px; font-family: monospace; border-radius: 5px; }
+        .controls { display: flex; gap: 10px; margin-top: 15px; }
+        input { flex: 1; padding: 12px; background: #222; border: 1px solid #444; color: white; border-radius: 4px; }
+        button { padding: 10px 25px; background: #d32f2f; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h2 style="color:#ff4444; text-align:center;">WEB-TO-VR BRIDGE</h2>
+    <div id="chat-log">Connecting...</div>
+    
+    <div class="controls">
+        <input type="text" id="msgInput" placeholder="Type a message..." disabled>
+        <button id="sendBtn" onclick="sendMsg()" disabled>SEND</button>
+    </div>
+
+    <!-- 1. Load the Photon SDK first -->
+    <script src="https://unpkg.com"></script>
+    
+    <!-- 2. Load your custom chat logic last -->
+    <script src="chat.js"></script>
+
+</body>
+</html>
