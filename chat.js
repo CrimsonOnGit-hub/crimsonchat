@@ -6,42 +6,57 @@ var client;
 var debugBox = document.getElementById("debug-log");
 var chatBox = document.getElementById("chat-log");
 
-function dbg(msg) { debugBox.innerHTML += "<div>> " + msg + "</div>"; debugBox.scrollTop = debugBox.scrollHeight; }
+function dbg(msg) { 
+    debugBox.innerHTML += "<div>> " + msg + "</div>"; 
+    debugBox.scrollTop = debugBox.scrollHeight; 
+}
 
+// Using window.onload ensures the scripts are fully parsed
 window.onload = function() {
     dbg("Checking SDK...");
+    
     if (typeof Photon === 'undefined') {
-        dbg("FATAL: Photon is NOT defined. Check photon.js!");
+        dbg("FATAL: Photon is NOT defined. Ensure photon.js is in the same folder.");
         return;
     }
 
     try {
         dbg("Creating ChatClient...");
-        // Protocol 1 = WSS (Secure)
+        // Protocol 1 = WSS (Secure WebSocket)
         client = new Photon.Chat.ChatClient(1, APP_ID, VERSION);
 
+        // Handle State Changes using internal constants
         client.onStateChange = function(state) {
             dbg("State Change: " + state);
-            if (state === 10) { // Connected
-                chatBox.innerHTML = "<b>[CONNECTED]</b> Joined: " + CHANNEL;
+            
+            // ConnectedToFrontEnd is the standard state for a ready chat connection
+            if (state === Photon.Chat.ChatClient.ChatState.ConnectedToFrontEnd) { 
+                chatBox.innerHTML = "<b>[CONNECTED]</b> Subscribing to: " + CHANNEL;
                 client.subscribe([CHANNEL]);
                 document.getElementById("msgInput").disabled = false;
                 document.getElementById("sendBtn").disabled = false;
+                document.getElementById("msgInput").placeholder = "Type a message...";
             }
         };
 
-        dbg("Setting Heartbeat...");
+        // Handle incoming messages
+        client.onChatMessages = function(channel, messages) {
+            messages.forEach(msg => {
+                chatBox.innerHTML += `<div><b>${msg.getSender()}:</b> ${msg.getContent()}</div>`;
+            });
+            chatBox.scrollTop = chatBox.scrollHeight;
+        };
+
+        // CRITICAL: The service loop must use lowercase .service() in JavaScript
+        dbg("Starting Heartbeat...");
         setInterval(function() {
             if (client) {
-                if (client.Service) client.Service();
-                else if (client.service) client.service();
+                client.service(); 
             }
-        }, 50);
+        }, 100);
 
-        dbg("Connecting to Region US...");
+        dbg("Connecting to US Region...");
         var name = "WebUser_" + Math.floor(Math.random() * 999);
-        
-        // This is the safest way to connect on GitHub Pages in 2026
         client.connectToRegionMaster("US", name);
 
     } catch (e) {
@@ -53,9 +68,6 @@ window.sendMsg = function() {
     var input = document.getElementById("msgInput");
     if (input.value && client) {
         client.publishMessage(CHANNEL, input.value);
-        chatBox.innerHTML += "<div><b>Me:</b> " + input.value + "</div>";
         input.value = "";
-        chatBox.scrollTop = chatBox.scrollHeight;
     }
 };
-
