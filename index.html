@@ -1,58 +1,59 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Photon Chat Sender</title>
-    <!-- Load the actual Photon Realtime SDK -->
-    <script src="https://photonengine.github.io/photon-javascript/Photon-Javascript_SDK.min.js"></script>
+    <title>Photon Chat Bridge</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            padding: 20px; 
+            background: #1e1e1e; 
+            color: #0f0; 
+        }
+        #debug-log, #chat-log { 
+            background: #000; 
+            border: 2px solid #0f0; 
+            padding: 10px; 
+            height: 200px; 
+            overflow-y: scroll; 
+            margin-bottom: 10px; 
+        }
+        input { 
+            width: 70%; 
+            padding: 8px; 
+            background: #000; 
+            color: #0f0; 
+            border: 1px solid #0f0; 
+        }
+        button { 
+            padding: 8px 15px; 
+            background: #0f0; 
+            color: #000; 
+            border: none; 
+            cursor: pointer; 
+        }
+        button:disabled { 
+            background: #333; 
+            color: #666; 
+            cursor: not-allowed; 
+        }
+    </style>
 </head>
 <body>
-    <h1>Photon Chat Bridge</h1>
-    <input type="text" id="msg" placeholder="Type a message...">
-    <button onclick="sendMessage()">Send to VR</button>
-    <div id="status" style="margin-top: 10px; color: #666;"></div>
+    <h1>Photon VR Chat Bridge</h1>
+    
+    <h3>Debug Log:</h3>
+    <div id="debug-log"></div>
+    
+    <h3>Chat Messages:</h3>
+    <div id="chat-log"><i>Waiting for connection...</i></div>
+    
+    <input type="text" id="msgInput" placeholder="Connecting..." disabled>
+    <button id="sendBtn" onclick="sendMsg()" disabled>Send to VR</button>
 
-    <script>
-        const statusDiv = document.getElementById('status');
-        
-        // Using LoadBalancing (Realtime) instead of Chat
-        const client = new Photon.LoadBalancing.LoadBalancingClient(
-            Photon.ConnectionProtocol.Wss, 
-            "18ee95c7-0614-483c-86bb-669960d9fe87", 
-            "1.0"
-        );
-
-        client.onStateChange = function(state) {
-            statusDiv.textContent = "Status: " + state;
-            console.log("State:", state);
-        };
-
-        client.onError = function(errorCode, errorMsg) {
-            console.error("Error:", errorCode, errorMsg);
-            statusDiv.textContent = "❌ Error: " + errorMsg;
-        };
-
-        client.onJoinRoom = function() {
-            statusDiv.textContent = "✅ Connected! Ready to send.";
-        };
-
-        // Connect and join room
-        client.setCustomAuthentication("username=" + Date.now());
-        client.connectToRegionMaster("us");
-        
-        setTimeout(() => {
-            client.joinOrCreateRoom("GlobalRoom");
-        }, 2000);
-
-        function sendMessage() {
-            const text = document.getElementById('msg').value;
-            if (text && client.isJoinedToRoom()) {
-                client.raiseEvent(1, {message: text});
-                document.getElementById('msg').value = '';
-                statusDiv.textContent = "Sent: " + text;
-            } else {
-                statusDiv.textContent = "⚠️ Not in room yet...";
-            }
-        }
-    </script>
+    <!-- Load Photon Chat SDK from CDN -->
+    <script src="https://cdn.jsdelivr.net/gh/Photon-OnPremise-Server-SDK/photon-javascript-sdk@master/deploy/Photon-Javascript_SDK.min.js"></script>
+    
+    <!-- Your custom script -->
+    <script src="your-script.js"></script>
 </body>
 </html>
