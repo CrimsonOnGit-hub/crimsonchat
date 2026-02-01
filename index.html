@@ -2,39 +2,55 @@
 <html>
 <head>
     <title>Photon Chat Sender</title>
-    <!-- Load the Photon SDK from their CDN -->
-    <script src="https://cdn.jsdelivr.net"></script>
+    <!-- Load the actual Photon Realtime SDK -->
+    <script src="https://photonengine.github.io/photon-javascript/Photon-Javascript_SDK.min.js"></script>
 </head>
 <body>
     <h1>Photon Chat Bridge</h1>
     <input type="text" id="msg" placeholder="Type a message...">
     <button onclick="sendMessage()">Send to VR</button>
+    <div id="status" style="margin-top: 10px; color: #666;"></div>
 
     <script>
-        // 1. Setup the Chat Client
-        const chatClient = new Photon.Chat.ChatClient(
+        const statusDiv = document.getElementById('status');
+        
+        // Using LoadBalancing (Realtime) instead of Chat
+        const client = new Photon.LoadBalancing.LoadBalancingClient(
             Photon.ConnectionProtocol.Wss, 
-            "18ee95c7-0614-483c-86bb-669960d9fe87", // Get this from Photon Dashboard
+            "18ee95c7-0614-483c-86bb-669960d9fe87", 
             "1.0"
         );
 
-        // 2. Connect to the server
-        chatClient.connectToRegionMaster("US"); // Change to your region (EU, US, etc.)
-
-        // 3. What happens when we connect?
-        chatClient.onConnected = () => {
-            console.log("Connected! Joining channel...");
-            chatClient.subscribe(["GlobalChannel"]); // Must match your VR channel name
+        client.onStateChange = function(state) {
+            statusDiv.textContent = "Status: " + state;
+            console.log("State:", state);
         };
 
-        // 4. Send the message
+        client.onError = function(errorCode, errorMsg) {
+            console.error("Error:", errorCode, errorMsg);
+            statusDiv.textContent = "❌ Error: " + errorMsg;
+        };
+
+        client.onJoinRoom = function() {
+            statusDiv.textContent = "✅ Connected! Ready to send.";
+        };
+
+        // Connect and join room
+        client.setCustomAuthentication("username=" + Date.now());
+        client.connectToRegionMaster("us");
+        
+        setTimeout(() => {
+            client.joinOrCreateRoom("GlobalRoom");
+        }, 2000);
+
         function sendMessage() {
             const text = document.getElementById('msg').value;
-            if (text) {
-                // 'PublishMessage' sends it to everyone in that channel
-                chatClient.publishMessage("GlobalChannel", text);
+            if (text && client.isJoinedToRoom()) {
+                client.raiseEvent(1, {message: text});
                 document.getElementById('msg').value = '';
-                console.log("Sent: " + text);
+                statusDiv.textContent = "Sent: " + text;
+            } else {
+                statusDiv.textContent = "⚠️ Not in room yet...";
             }
         }
     </script>
