@@ -1,27 +1,42 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Crimson Protocols | Web Bridge</title>
-    <style>
-        body { background: #0a0a0a; color: white; font-family: monospace; padding: 20px; }
-        #debug-log { background: #000; border: 1px solid #333; height: 150px; overflow-y: auto; padding: 10px; color: #ffcc00; margin-bottom: 10px; font-size: 12px; }
-        #chat-log { background: #000; border: 1px solid #444; height: 300px; overflow-y: auto; padding: 10px; border-radius: 5px; }
-        .controls { margin-top: 10px; display: flex; gap: 5px; }
-        input { flex: 1; padding: 10px; background: #222; color: white; border: 1px solid #444; }
-        button { padding: 10px; background: #cc0000; color: white; border: none; cursor: pointer; }
-    </style>
+    <title>Photon Chat Sender</title>
+    <!-- Load the Photon SDK from their CDN -->
+    <script src="https://cdn.jsdelivr.net"></script>
 </head>
 <body>
-    <div id="debug-log">Debug: Waiting for Script...</div>
-    <div id="chat-log">System: Initializing...</div>
-    <div class="controls">
-        <input type="text" id="msgInput" placeholder="Connecting..." disabled>
-        <button id="sendBtn" onclick="sendMsg()" disabled>SEND</button>
-    </div>
+    <h1>Photon Chat Bridge</h1>
+    <input type="text" id="msg" placeholder="Type a message...">
+    <button onclick="sendMessage()">Send to VR</button>
 
-    <!-- The defer attribute ensures photon.js loads before chat.js -->
-    <script src="photon.js" defer></script>
-    <script src="chat.js" defer></script>
+    <script>
+        // 1. Setup the Chat Client
+        const chatClient = new Photon.Chat.ChatClient(
+            Photon.ConnectionProtocol.Wss, 
+            "18ee95c7-0614-483c-86bb-669960d9fe87", // Get this from Photon Dashboard
+            "1.0"
+        );
+
+        // 2. Connect to the server
+        chatClient.connectToRegionMaster("US"); // Change to your region (EU, US, etc.)
+
+        // 3. What happens when we connect?
+        chatClient.onConnected = () => {
+            console.log("Connected! Joining channel...");
+            chatClient.subscribe(["GlobalChannel"]); // Must match your VR channel name
+        };
+
+        // 4. Send the message
+        function sendMessage() {
+            const text = document.getElementById('msg').value;
+            if (text) {
+                // 'PublishMessage' sends it to everyone in that channel
+                chatClient.publishMessage("GlobalChannel", text);
+                document.getElementById('msg').value = '';
+                console.log("Sent: " + text);
+            }
+        }
+    </script>
 </body>
 </html>
