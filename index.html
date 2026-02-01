@@ -1,282 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Photon Chat Bridge</title>
-    <style>
-        body { 
-            font-family: 'Courier New', monospace; 
-            padding: 20px; 
-            background: #1a1a1a; 
-            color: #00ff00; 
-            margin: 0;
-        }
-        h1 { color: #00ff00; text-shadow: 0 0 10px #00ff00; }
-        .container { max-width: 800px; margin: 0 auto; }
-        #debug-log, #chat-log { 
-            background: #000; 
-            border: 2px solid #00ff00; 
-            padding: 15px; 
-            height: 250px; 
-            overflow-y: auto; 
-            margin-bottom: 15px;
-            font-size: 12px;
-            box-shadow: 0 0 20px rgba(0,255,0,0.3);
-        }
-        #debug-log div, #chat-log div {
-            margin: 2px 0;
-            line-height: 1.4;
-        }
-        .input-group {
-            display: flex;
-            gap: 10px;
-        }
-        input { 
-            flex: 1;
-            padding: 10px; 
-            background: #000; 
-            color: #00ff00; 
-            border: 2px solid #00ff00; 
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-        }
-        input:focus {
-            outline: none;
-            box-shadow: 0 0 10px #00ff00;
-        }
-        button { 
-            padding: 10px 20px; 
-            background: #00ff00; 
-            color: #000; 
-            border: none; 
-            cursor: pointer;
-            font-weight: bold;
-            font-family: 'Courier New', monospace;
-            transition: all 0.3s;
-        }
-        button:hover:not(:disabled) {
-            background: #00cc00;
-            box-shadow: 0 0 15px #00ff00;
-        }
-        button:disabled { 
-            background: #333; 
-            color: #666; 
-            cursor: not-allowed; 
-        }
-        .status {
-            text-align: center;
-            padding: 10px;
-            margin-bottom: 10px;
-            border: 2px solid #00ff00;
-            background: #000;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Photon VR Chat Bridge</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>⚡ Photon VR Chat Bridge ⚡</h1>
-        
-        <div class="status" id="status">🔴 LOADING SDK...</div>
-        
-        <h3>📋 Debug Log:</h3>
-        <div id="debug-log"></div>
-        
-        <h3>💬 Chat Messages:</h3>
-        <div id="chat-log"></div>
-        
-        <div class="input-group">
-            <input type="text" id="msgInput" placeholder="Waiting for connection..." disabled>
-            <button id="sendBtn" onclick="sendMsg()" disabled>SEND</button>
-        </div>
+
+  <div class="container">
+
+    <h1>⚡ Photon VR Chat Bridge ⚡</h1>
+
+    <div class="status-box">
+      <span id="status-dot"></span>
+      <span id="status-text">CONNECTING...</span>
+      <div class="progress-bar">
+        <div id="progress"></div>
+      </div>
     </div>
 
-    <!-- Load Photon SDK from unpkg (more reliable) -->
-    <script src="https://unpkg.com/photon-javascript-sdk@4.1.1-rc.5/dist/Photon-Javascript_SDK.min.js"></script>
-    
-    <script>
-        // ===== CONFIG =====
-        const APP_ID = "512c0979-f7b9-496c-b07b-5d5f753ae9c9";  // Your Chat App ID
-        const VERSION = "1.0";
-        const CHANNEL = "ingame";
-        
-        var client = null;
-        var isConnected = false;
+    <h2>📋 Debug Log</h2>
+    <div id="log" class="terminal"></div>
 
-        // ===== HELPERS =====
-        function dbg(msg) {
-            const box = document.getElementById("debug-log");
-            const time = new Date().toLocaleTimeString();
-            box.innerHTML += `<div>[${time}] ${msg}</div>`;
-            box.scrollTop = box.scrollHeight;
-            console.log(`[${time}] ${msg}`);
-        }
+    <h2>💬 Chat Messages</h2>
+    <div id="chat" class="terminal"></div>
 
-        function chat(sender, msg) {
-            const box = document.getElementById("chat-log");
-            box.innerHTML += `<div><b>${sender}:</b> ${msg}</div>`;
-            box.scrollTop = box.scrollHeight;
-        }
+    <div class="chat-input">
+      <input id="chatInput" placeholder="Connecting..." disabled>
+      <button id="sendBtn" disabled>SEND</button>
+    </div>
 
-        function setStatus(text, color) {
-            const status = document.getElementById("status");
-            status.textContent = text;
-            status.style.borderColor = color;
-            status.style.color = color;
-        }
+  </div>
 
-        function enableInput(enabled) {
-            document.getElementById("msgInput").disabled = !enabled;
-            document.getElementById("sendBtn").disabled = !enabled;
-            document.getElementById("msgInput").placeholder = enabled ? "Type your message..." : "Not connected";
-        }
-
-        // ===== MAIN INIT =====
-        dbg("✨ Script initialized");
-        
-        window.addEventListener('load', function() {
-            dbg("🚀 Page loaded on GitHub Pages");
-            dbg("📍 URL: " + window.location.href);
-            
-            // Wait for Photon SDK
-            let attempts = 0;
-            const checkSDK = setInterval(function() {
-                attempts++;
-                
-                if (typeof Photon !== 'undefined') {
-                    clearInterval(checkSDK);
-                    dbg("✅ Photon SDK detected!");
-                    
-                    // Check if Chat API exists
-                    if (Photon.Chat && Photon.Chat.ChatClient) {
-                        dbg("✅ Photon.Chat.ChatClient found!");
-                        startChat();
-                    } else {
-                        dbg("❌ ERROR: Photon.Chat not found in SDK");
-                        dbg("Available: " + Object.keys(Photon).join(", "));
-                        setStatus("🔴 WRONG SDK TYPE", "#ff0000");
-                    }
-                    
-                } else if (attempts >= 40) {
-                    clearInterval(checkSDK);
-                    dbg("❌ FATAL: SDK never loaded");
-                    dbg("🔧 Check browser console (F12) for network errors");
-                    setStatus("🔴 SDK LOAD FAILED", "#ff0000");
-                    
-                } else if (attempts % 5 === 0) {
-                    dbg("⏳ Waiting for SDK... (" + attempts + "/40)");
-                }
-            }, 500);
-        });
-
-        function startChat() {
-            try {
-                dbg("🔧 Creating ChatClient...");
-                setStatus("🟡 INITIALIZING...", "#ffff00");
-
-                client = new Photon.Chat.ChatClient(
-                    Photon.ConnectionProtocol.Wss,
-                    APP_ID,
-                    VERSION
-                );
-
-                dbg("✅ Client created");
-
-                // State changes
-                client.onStateChange = function(state) {
-                    dbg("📡 State: " + state);
-                    
-                    // Connected
-                    if (state === 2 || state === Photon.Chat.ChatClient.ChatState.ConnectedToFrontEnd) {
-                        dbg("🎉 CONNECTED!");
-                        setStatus("🟢 CONNECTED", "#00ff00");
-                        client.subscribe([CHANNEL]);
-                        isConnected = true;
-                        enableInput(true);
-                        chat("SYSTEM", "✅ Connected to " + CHANNEL);
-                    }
-                    // Disconnected
-                    else if (state === 0) {
-                        dbg("⚠️ Disconnected");
-                        setStatus("🔴 DISCONNECTED", "#ff0000");
-                        isConnected = false;
-                        enableInput(false);
-                    }
-                    // Connecting
-                    else if (state === 1) {
-                        setStatus("🟡 CONNECTING...", "#ffff00");
-                    }
-                };
-
-                // Messages
-                client.onChatMessages = function(channelName, messages) {
-                    dbg("📥 Got " + messages.length + " message(s)");
-                    
-                    messages.forEach(function(msg) {
-                        chat(msg.getSender(), msg.getContent());
-                    });
-                };
-
-                // Errors
-                client.onError = function(code, msg) {
-                    dbg("❌ ERROR " + code + ": " + msg);
-                    setStatus("🔴 ERROR", "#ff0000");
-                    chat("ERROR", msg);
-                };
-
-                // Subscribed
-                client.onSubscribed = function(channels) {
-                    dbg("✅ Subscribed to: " + channels.join(", "));
-                };
-
-                // Heartbeat
-                dbg("💓 Starting heartbeat...");
-                setInterval(function() {
-                    if (client) client.service();
-                }, 50);
-
-                // Connect
-                const username = "Web_" + Math.floor(Math.random() * 10000);
-                dbg("👤 User: " + username);
-                dbg("🔌 Connecting to Photon Chat...");
-                
-                client.connectToRegionMaster("us", username);
-
-            } catch (err) {
-                dbg("💥 CRASH: " + err.message);
-                dbg("Stack: " + err.stack);
-                setStatus("🔴 CRASHED", "#ff0000");
-            }
-        }
-
-        // Send message
-        function sendMsg() {
-            const input = document.getElementById("msgInput");
-            const msg = input.value.trim();
-
-            if (!msg) return;
-
-            if (!client || !isConnected) {
-                chat("ERROR", "Not connected!");
-                return;
-            }
-
-            try {
-                dbg("📤 Sending: " + msg);
-                client.publishMessage(CHANNEL, msg);
-                chat("You", msg);
-                input.value = "";
-            } catch (err) {
-                dbg("❌ Send failed: " + err.message);
-            }
-        }
-
-        // Enter key
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById("msgInput").addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') sendMsg();
-            });
-        });
-    </script>
+  <!-- Photon Chat SDK -->
+  <script src="https://unpkg.com/photon-javascript-sdk@4.1.2/lib/Photon-Javascript_SDK.min.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
